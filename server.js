@@ -8,14 +8,22 @@ const bcrypt = require('bcrypt');
 const passport = require('passport');
 const flash = require('express-flash');
 const session = require('express-session');
+const methodOverride = require('method-override');
 
 const initializePassport = require('./passport-config');
+const users = [];
+
 initializePassport(
     passport, 
-    (email) => users.find(user.email === email)
+    (email) => {
+        return users.find(u=> u.email == email);
+    },
+    (id) => {
+        return users.find(u=> u.id == id);
+    }
 );
 
-const users = [];
+
 
 app.set("view-engine", "ejs");
 app.use(express.urlencoded({extended: false}));
@@ -27,18 +35,22 @@ app.use(session({
 }));
 app.use(passport.initialize());
 app.use(passport.session());
+app.use(methodOverride('_method'));
 
-app.get('/', (req,res)=>{
-    res.render("index.ejs", {name: "Matthew"});
+app.get('/', checkAuthenticated, (req,res)=>{
+    res.render("index.ejs", {name: req.user.name});
 });
 
-app.get('/login', (req,res)=>{
+app.get('/login', checkNotAuthenticated, (req,res)=>{
     res.render("login.ejs");
 });
 
-app.post('/login',(req,res)=>{
-
-});
+app.post('/login', passport.authenticate('local',{
+    successRedirect:'/',
+    failureRedirect: '/login',
+    failureFlash: true
+})
+);
 
 app.get('/register', (req,res)=>{
     res.render("register.ejs",);
@@ -59,5 +71,26 @@ app.post('/register', async (req,res)=>{
     }
     console.log(users);
 });
+
+app.delete('/logout',(req,res)=>{
+    req.logOut();
+    res.redirect('/login');
+})
+
+function checkAuthenticated(req,res,next){
+    if(req.isAuthenticated()){
+        return next();
+    }
+    res.redirect('/login');
+    
+}
+
+function checkNotAuthenticated(req,res,next){
+    if(req.isAuthenticated()){
+        return res.redirect('/');
+    }
+    return next();
+    
+}
 
 app.listen(3000);
