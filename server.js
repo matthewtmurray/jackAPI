@@ -9,6 +9,11 @@ const passport = require('passport');
 const flash = require('express-flash');
 const session = require('express-session');
 const methodOverride = require('method-override');
+const mongoose = require('mongoose');
+
+mongoose.connect('mongodb://localhost/playground').then(
+   ()=> console.log('connected to mongo db'));
+
 
 const initializePassport = require('./passport-config');
 const users = [];
